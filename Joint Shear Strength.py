@@ -1,61 +1,100 @@
-# streamlit_shear_calculator.py
+# Joint Shear Strength-App: Interactive Streamlit calculator for V_proposed using calibrated shear equation.
+
 import streamlit as st
 import numpy as np
+import matplotlib.pyplot as plt
 
 # ===========================
-# Streamlit page config
+# Page configuration
 # ===========================
-st.set_page_config(page_title="Proposed Shear Equation Calculator", layout="centered")
-st.title("Proposed Shear Equation Calculator")
+st.set_page_config(
+    page_title="Joint Shear Strength-App",
+    layout="centered",
+    initial_sidebar_state="expanded"
+)
 
-st.markdown(r"""
-This app calculates the predicted shear, $V_{\mathrm{proposed}}$, using the proposed equation:
+st.title("Joint Shear Strength Calculator")
+st.markdown("""
+This app computes the **predicted joint shear** \(V_{proposed}\) using the calibrated equation:
 
 $$
-V_{\mathrm{proposed}} = C \cdot \sqrt{f'_c} \cdot A_j \cdot \Big( 1 + \alpha \cdot \rho_{bl} + \beta \cdot \frac{P}{f'_c \cdot A_j} \Big)
+V_{proposed} = C \cdot \sqrt{f'_c} \cdot A_j \cdot \Big( 1 + \alpha \cdot \rho_{bl} + \beta \cdot \frac{P}{f'_c \cdot A_j} \Big)
 $$
 
-**Units:**  
-- $f'_c$ in MPa  
-- $A_j$ in mm²  
-- $P$ in kN  
-- $V_{\mathrm{proposed}}$ will be in kN
+All units must be consistent:  
+- \(f'_c\) in MPa  
+- \(A_j\) in mm²  
+- \(P\) in kN  
+- \(V_{proposed}\) in kN
 """)
 
 # ===========================
-# 1. Input coefficients
+# Display calibrated coefficients
 # ===========================
-st.sidebar.header("Coefficients")
-C = st.sidebar.number_input("C (coefficient)", value=1.0, step=0.01, format="%.3f")
-alpha = st.sidebar.number_input("alpha (reinforcement coefficient)", value=0.0, step=0.01, format="%.3f")
-beta  = st.sidebar.number_input("beta (axial load coefficient)", value=0.0, step=0.01, format="%.3f")
+st.subheader("Calibrated Coefficients")
+st.markdown("""
+- **C** = 11.5508  
+- **α (alpha)** = -41.425  
+- **β (beta)** = 3531.564
+""")
+
+C = 11.5508
+alpha = -41.425
+beta = 3531.564
 
 # ===========================
-# 2. Input parameters
+# Sidebar inputs
 # ===========================
 st.sidebar.header("Input Parameters")
-fc = st.sidebar.number_input("Concrete compressive strength f'_c (MPa)", value=30.0, step=1.0)
-Aj = st.sidebar.number_input("Web area A_j (mm²)", value=100000.0, step=1000.0)
-rho_bl = st.sidebar.number_input("Longitudinal reinforcement ratio ρ_bl (decimal)", value=0.01, step=0.001)
-P = st.sidebar.number_input("Axial load P (kN)", value=0.0, step=1.0)
+
+fc = st.sidebar.number_input("Concrete compressive strength f'_c (MPa)", min_value=1.0, max_value=100.0, value=30.0, step=1.0)
+Aj = st.sidebar.number_input("Web area A_j (mm²)", min_value=1000.0, max_value=1e6, value=100000.0, step=1000.0)
+rho_bl = st.sidebar.slider("Longitudinal reinforcement ratio ρ_bl (decimal)", 0.0, 0.1, 0.01, 0.001)
+P = st.sidebar.number_input("Axial load P (kN)", min_value=0.0, max_value=5000.0, value=0.0, step=10.0)
 
 # ===========================
-# 3. Compute V_proposed
+# Compute V_proposed
 # ===========================
 V_proposed = C * np.sqrt(fc) * Aj * (1 + alpha * rho_bl + beta * P / (fc * Aj)) / 1000.0  # kN
 
-# ===========================
-# 4. Display result
-# ===========================
 st.subheader("Predicted Shear")
-st.write(f"**V_proposed = {V_proposed:.2f} kN**")
+st.success(f"V_proposed = {V_proposed:.2f} kN")
 
-# Optional: show formula with values
-st.markdown(rf"""
-**Using values:**  
-C = {C}, alpha = {alpha}, beta = {beta}  
-f'_c = {fc} MPa, A_j = {Aj} mm², ρ_bl = {rho_bl}, P = {P} kN  
-
-**Calculation:**  
-V_proposed = {C} × √{fc} × {Aj} × (1 + {alpha}×{rho_bl} + {beta}×{P}/({fc}×{Aj})) / 1000 ≈ {V_proposed:.2f} kN
+# ===========================
+# Show detailed calculation
+# ===========================
+st.markdown(f"""
+**Calculation breakdown:**  
+V_proposed = {C} × √{fc} × {Aj} × (1 + {alpha}×{rho_bl} + {beta}×{P}/({fc}×{Aj})) / 1000 ≈ **{V_proposed:.2f} kN**
 """)
+
+# ===========================
+# Dynamic plot
+# ===========================
+st.subheader("Sensitivity Plot")
+
+st.markdown("See how V_proposed varies with ρ_bl or P while keeping other parameters constant.")
+
+plot_type = st.radio("Choose variable to vary:", ("ρ_bl", "P"))
+
+fig, ax = plt.subplots(figsize=(7,5))
+
+if plot_type == "ρ_bl":
+    rho_values = np.linspace(0, 0.1, 100)
+    V_values = C * np.sqrt(fc) * Aj * (1 + alpha * rho_values + beta * P / (fc * Aj)) / 1000.0
+    ax.plot(rho_values, V_values, color='blue', lw=2)
+    ax.set_xlabel("ρ_bl")
+else:
+    P_values = np.linspace(0, 5000, 100)
+    V_values = C * np.sqrt(fc) * Aj * (1 + alpha * rho_bl + beta * P_values / (fc * Aj)) / 1000.0
+    ax.plot(P_values, V_values, color='green', lw=2)
+    ax.set_xlabel("P (kN)")
+
+ax.set_ylabel("V_proposed (kN)")
+ax.set_title("V_proposed Sensitivity")
+ax.grid(True)
+st.pyplot(fig)
+
+st.markdown("---")
+st.markdown("**Developed with Streamlit**")
+
