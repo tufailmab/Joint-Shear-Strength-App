@@ -32,7 +32,7 @@
   </ul>
 
   <h2>License</h2>
-  <p>This project is licensed under the <strong>MIT License</strong>. You may use, modify, and distribute this software with proper attribution.</p>
+<p>This project is licensed under the <strong>Apache License 2.0</strong>. You may use, modify, and distribute this software under the terms of the license. If you use this software in your work, please provide appropriate credit to the developer.</p>
 
   <h2>Developer Information</h2>
   <ul>
